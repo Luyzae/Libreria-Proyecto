@@ -1,0 +1,182 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model carrito_compras {
+  id_carrito      Int              @id @default(autoincrement())
+  id_usuario      Int?
+  id_producto     Int?
+  cantidad        Int
+  precio_unitario Decimal?         @db.Decimal(10, 2)
+  cupon           String?          @db.VarChar(50)
+  descuento       Decimal?         @default(0.00) @db.Decimal(10, 2)
+  envio           Decimal?         @db.Decimal(10, 2)
+  fecha_agregado  DateTime?        @default(now()) @db.Timestamp(0)
+  id_estado       Int?
+  usuarios        usuarios?        @relation(fields: [id_usuario], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "carrito_compras_ibfk_1")
+  productos       productos?       @relation(fields: [id_producto], references: [id_producto], onDelete: NoAction, onUpdate: NoAction, map: "carrito_compras_ibfk_2")
+  estados_pedidos estados_pedidos? @relation(fields: [id_estado], references: [id_estado], onDelete: NoAction, onUpdate: NoAction, map: "carrito_compras_ibfk_3")
+
+  @@index([id_estado], map: "id_estado")
+  @@index([id_producto], map: "id_producto")
+  @@index([id_usuario], map: "id_usuario")
+}
+
+model categorias {
+  id_categoria     Int         @id @default(autoincrement())
+  nombre_categoria String      @db.VarChar(100)
+  productos        productos[]
+}
+
+model comentarios_libro {
+  id_comentario    Int        @id @default(autoincrement())
+  id_producto      Int?
+  id_usuario       Int?
+  comentario       String     @db.Text
+  fecha_comentario DateTime?  @default(now()) @db.Timestamp(0)
+  productos        productos? @relation(fields: [id_producto], references: [id_producto], onDelete: NoAction, onUpdate: NoAction, map: "comentarios_libro_ibfk_1")
+  usuarios         usuarios?  @relation(fields: [id_usuario], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "comentarios_libro_ibfk_2")
+
+  @@index([id_producto], map: "id_producto")
+  @@index([id_usuario], map: "id_usuario")
+}
+
+model comentarios_perfil {
+  id_comentario    Int              @id @default(autoincrement())
+  id_perfil        Int?
+  id_usuario_autor Int?
+  comentario       String           @db.Text
+  fecha_comentario DateTime?        @default(now()) @db.Timestamp(0)
+  perfiles_custom  perfiles_custom? @relation(fields: [id_perfil], references: [id_perfil], onDelete: NoAction, onUpdate: NoAction, map: "comentarios_perfil_ibfk_1")
+  usuarios         usuarios?        @relation(fields: [id_usuario_autor], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "comentarios_perfil_ibfk_2")
+
+  @@index([id_perfil], map: "id_perfil")
+  @@index([id_usuario_autor], map: "id_usuario_autor")
+}
+
+model estados_pedidos {
+  id_estado       Int               @id @default(autoincrement())
+  nombre_estado   String            @db.VarChar(50)
+  carrito_compras carrito_compras[]
+}
+
+model facturacion_cliente {
+  id_facturacion        Int       @id @default(autoincrement())
+  id_usuario            Int?
+  rut_run               String    @db.VarChar(20)
+  nombre                String    @db.VarChar(255)
+  apellidos             String    @db.VarChar(255)
+  email                 String    @db.VarChar(255)
+  telefono              String    @db.VarChar(20)
+  direccion_facturacion String    @db.VarChar(255)
+  comuna                String?   @db.VarChar(50)
+  usuarios              usuarios? @relation(fields: [id_usuario], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "facturacion_cliente_ibfk_1")
+  pedidos               pedidos[]
+
+  @@index([id_usuario], map: "id_usuario")
+}
+
+model pedidos {
+  id_pedido           Int                  @id @default(autoincrement())
+  id_usuario          Int?
+  id_facturacion      Int?
+  total               Decimal?             @db.Decimal(10, 2)
+  fecha_pedido        DateTime?            @default(now()) @db.Timestamp(0)
+  estado              String?              @default("pendiente") @db.VarChar(50)
+  metodo_pago         String?              @db.VarChar(50)
+  usuarios            usuarios?            @relation(fields: [id_usuario], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "pedidos_ibfk_1")
+  facturacion_cliente facturacion_cliente? @relation(fields: [id_facturacion], references: [id_facturacion], onDelete: NoAction, onUpdate: NoAction, map: "pedidos_ibfk_2")
+
+  @@index([id_facturacion], map: "id_facturacion")
+  @@index([id_usuario], map: "id_usuario")
+}
+
+model perfiles_custom {
+  id_perfil          Int                  @id @default(autoincrement())
+  id_usuario         Int?
+  nombre_perfil      String?              @db.VarChar(255)
+  pais               String?              @db.VarChar(100)
+  foto_perfil        String?              @db.VarChar(255)
+  biografia          String?              @db.VarChar(500)
+  imagen_fondo       String?              @db.VarChar(255)
+  id_tema            Int?
+  fecha_modificacion DateTime?            @default(now()) @db.Timestamp(0)
+  comentarios_perfil comentarios_perfil[]
+  usuarios           usuarios?            @relation(fields: [id_usuario], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "perfiles_custom_ibfk_1")
+  temas_colores      temas_colores?       @relation(fields: [id_tema], references: [id_tema], onDelete: NoAction, onUpdate: NoAction, map: "perfiles_custom_ibfk_2")
+
+  @@index([id_tema], map: "id_tema")
+  @@index([id_usuario], map: "id_usuario")
+}
+
+model productos {
+  id_producto       Int                 @id @default(autoincrement())
+  titulo            String              @db.VarChar(255)
+  autor             String              @db.VarChar(255)
+  editorial         String?             @db.VarChar(255)
+  isbn              String?             @unique(map: "isbn") @db.VarChar(20)
+  precio            Decimal             @db.Decimal(10, 2)
+  stock             Int
+  descripcion       String?             @db.Text
+  id_categoria      Int?
+  imagen_portada    String?             @db.VarChar(255)
+  peso              Decimal?            @db.Decimal(5, 2)
+  dimensiones       String?             @db.VarChar(50)
+  idioma            String?             @db.VarChar(100)
+  anio_edicion      Int?                @db.Year
+  fecha_publicacion DateTime?           @db.Date
+  fecha_registro    DateTime?           @default(now()) @db.Timestamp(0)
+  carrito_compras   carrito_compras[]
+  comentarios_libro comentarios_libro[]
+  categorias        categorias?         @relation(fields: [id_categoria], references: [id_categoria], onDelete: NoAction, onUpdate: NoAction, map: "productos_ibfk_1")
+
+  @@index([id_categoria], map: "id_categoria")
+}
+
+model temas_colores {
+  id_tema         Int               @id @default(autoincrement())
+  nombre_tema     String            @db.VarChar(50)
+  perfiles_custom perfiles_custom[]
+}
+
+model usuarios {
+  id_usuario             Int                   @id @default(autoincrement())
+  nombre                 String                @db.VarChar(255)
+  email_telefono         String                @unique(map: "email_telefono") @db.VarChar(255)
+  contrase_a             String                @map("contraseña") @db.VarChar(255)
+  verificado             Boolean?              @default(false)
+  token_verificacion     String?               @db.VarChar(255)
+  fecha_expiracion_token DateTime?             @default(dbgenerated("(now() + interval 1 day)")) @db.Timestamp(0)
+  fecha_registro         DateTime?             @default(now()) @db.Timestamp(0)
+  
+  // Relación con refresh_tokens
+  refresh_tokens         refresh_tokens[]
+
+  // Campos para recuperación de contraseña
+  token_recuperacion        String?   @db.VarChar(255)
+  fecha_expiracion_recuperacion DateTime? @db.Timestamp(0)
+  
+  carrito_compras        carrito_compras[]
+  comentarios_libro      comentarios_libro[]
+  comentarios_perfil     comentarios_perfil[]
+  facturacion_cliente    facturacion_cliente[]
+  pedidos                pedidos[]
+  perfiles_custom        perfiles_custom[]
+}
+
+model refresh_tokens {
+  id             Int      @id @default(autoincrement())
+  id_usuario     Int
+  token          String   @unique  
+  expiracion     DateTime
+  creado_en      DateTime @default(now())
+  actualizado_en DateTime @updatedAt
+  usuarios       usuarios @relation(fields: [id_usuario], references: [id_usuario])
+
+  @@index([id_usuario])
+}
